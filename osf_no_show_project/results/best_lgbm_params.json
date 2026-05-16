@@ -1,0 +1,12 @@
+{
+  "best_cv_auc": 0.7601402496984303,
+  "num_leaves": 214,
+  "learning_rate": 0.04933484470204951,
+  "n_estimators": 1339,
+  "min_child_samples": 13,
+  "subsample": 0.7886029423917214,
+  "colsample_bytree": 0.5646432383013764,
+  "reg_alpha": 0.44997392984761536,
+  "reg_lambda": 0.03109472146752375,
+  "max_depth": 7
+}

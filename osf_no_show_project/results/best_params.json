@@ -1,0 +1,8 @@
+{
+  "best_cv_auc": 0.7743818767983913,
+  "depth": 7,
+  "iterations": 757,
+  "learning_rate": 0.03416498900601506,
+  "l2_leaf_reg": 7.4877192353880115,
+  "bagging_temperature": 0.17547048451034897
+}

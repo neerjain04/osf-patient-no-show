@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data — do not upload competition data
+train.csv
+test.csv
+metaData.csv
+sample_submission.csv
+
+# Model outputs — large binary files
+*.npy
+catboost_info/
+osf_no_show_project/catboost_info/
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Optuna DB (can be large)
+*.db
