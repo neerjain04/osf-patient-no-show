@@ -12,7 +12,7 @@ Predict whether a patient will miss their scheduled medical appointment (*no-sho
 
 | | |
 |---|---|
-| Dataset | 168,982 training rows · ~20 categorical features |
+| Dataset | 168,982 training rows · 20 categorical features |
 | Target | `NO_SHOW_FLG` (binary: 1 = no-show) |
 | Class balance | ~5% no-show (imbalanced) |
 | Metric | ROC-AUC |
@@ -25,46 +25,50 @@ Predict whether a patient will miss their scheduled medical appointment (*no-sho
 Raw Data
     │
     ▼
-Feature Engineering (frequency encoding, interaction features)
+Train CatBoost + LightGBM — 10 seeds × 5 folds each (50 models per algorithm)
     │
     ▼
-Train Base Models — 10 seeds × 5 folds each (50 models per algorithm)
-  ├── CatBoost  (native categorical encoding)
-  ├── LightGBM  (ordinal + target encoding variants)
-  └── XGBoost   (ordinal encoding)
+Generate OOF Predictions for all model variants
     │
     ▼
-Generate OOF Predictions
+Pseudo-Labeling Round 1
+  398 high-confidence no-shows (prob > 0.60) +
+  94,639 high-confidence show-ups (prob < 0.02)
+  → +95k rows added to training set
     │
     ▼
-Optuna Hyperparameter Search (CatBoost + LightGBM)
+Retrain CB + LGBM on augmented data (50 models each)
     │
     ▼
-Pseudo-Labeling — Round 1 (~95k high-confidence test rows added)
+Pseudo-Labeling Round 2
+  461 high-confidence no-shows (prob > 0.60) +
+  119,128 high-confidence show-ups (prob < 0.02)
+  → +119k rows added to training set
     │
     ▼
-Pseudo-Labeling — Round 2 (~119k rows, stricter thresholds)
+Retrain CB + LGBM on augmented data (50 models each)
     │
     ▼
-Greedy Ensemble Selection (hill-climbing over OOF AUC)
+Greedy Ensemble Selection (hill-climbing over OOF AUC across all saved model arrays)
+  v20: base greedy  [OOF 0.779003]
+  v30: pl2 greedy   [OOF 0.780235]
     │
     ▼
-Rank Averaging (normalises probability scales across models)
+Rank Average(v30, v20)
     │
     ▼
-Final Submission  →  2nd Place  (0.78270 private AUC)
+Final Submission — 2nd Place · Public 0.78271 · Private 0.78270
 ```
 
 ---
 
 ## Key Techniques
 
-- **CatBoost baseline** — all 20 features are categorical strings; CatBoost's ordered target encoding was the single strongest baseline (CV AUC 0.7736)
-- **50-model ensembling** — 10 random seeds × 5-fold CV reduces variance significantly vs a single-seed model
-- **Optuna hyperparameter optimisation** — TPE sampler over depth / iterations / learning rate / l2\_leaf\_reg / bagging\_temperature
-- **Pseudo-labeling (2 rounds)** — high-confidence test predictions added as extra training rows; boosted LB from 0.78218 → 0.78250+
-- **Greedy ensemble selection** — hill-climbing over OOF AUC to find the optimal subset and weights across all saved model arrays
-- **Rank averaging** — converts each model's raw probabilities to percentile ranks before averaging, neutralising calibration differences between CatBoost / LightGBM / XGBoost
+- **CatBoost with native categorical encoding** — all 20 features are categorical strings; CatBoost's ordered target encoding was the strongest single model (5-fold CV AUC 0.7736)
+- **Multi-seed ensembling** — 10 seeds × 5-fold CV = 50 models per algorithm; seed averaging substantially reduces prediction variance
+- **Pseudo-labeling (2 rounds)** — high-confidence test predictions added as extra training rows; biggest single LB jump of the competition (+0.00027 from v10 → v18)
+- **Greedy ensemble selection** — hill-climbing over OOF AUC to find the optimal subset and weights across all saved OOF arrays (Caruana et al. 2004)
+- **Rank averaging** — percentile-rank normalisation before blending removes calibration differences between models trained on different data distributions
 
 ---
 
@@ -72,19 +76,29 @@ Final Submission  →  2nd Place  (0.78270 private AUC)
 
 | Version | Technique | Public AUC |
 |---|---|---|
-| v1–v3 | CatBoost baseline, submission tooling | 0.78056 |
-| v4 | 3-model stacking (CB + LGBM + XGB) | 0.78066 |
-| v8 | CB + LGBM blend, 10-seed × 5-fold | 0.78162 |
-| v10 | 50-model CB + LGBM (lr=0.01, iter=3000) | **0.78218** |
-| v11 | Target-encoded LGBM + CB blend | 0.78205 |
-| v14 | XGBoost added to ensemble | 0.78222 |
-| v15 | Rank averaging sweep | 0.78230 |
-| v20 | Greedy ensemble (multi-model) | 0.78245 |
-| v22 | Greedy + pseudo-labels round 1 (~95k rows) | 0.78250 |
-| v23 | Fine-tuned greedy weights on v22 | 0.78260 |
-| v26 | Rank(v23, v20) | 0.78268 |
-| v29 | Pseudo-labels round 2 (~119k rows) | 0.78269 |
-| **v31** | **Rank(v30, v20)** | **0.78271** ← final |
+| v1 | CatBoost 5-fold CV baseline | 0.78056 |
+| v2 | CatBoost multi-seed ensemble | 0.78166 |
+| v8 | CatBoost + LightGBM blend, 10-seed × 5-fold | 0.78214 |
+| v10 | CB lr=0.01, iter=3000 (slower convergence) | 0.78218 |
+| v18 | Pseudo-labeling round 1 (+95k rows) | 0.78245 |
+| v19 | Greedy ensemble selection | 0.78249 |
+| v20 | Multi-start greedy ensemble | 0.78256 |
+| v26 | Rank blend: rank(v23) + rank(v20) | 0.78268 |
+| **v31** | **Rank blend: v30 greedy-pl2 + v20 base greedy** | **0.78271** ← final |
+
+---
+
+## What Didn't Work
+
+These were explored and abandoned (baseline v10 = 0.78218):
+
+| Technique | Version | Public AUC | Why |
+|---|---|---|---|
+| 7 interaction features | v16 | 0.78189 | CatBoost already captures interactions via ordered target encoding |
+| Frequency encoding (primary) | v17 | 0.78051 | CatBoost's encoding already captures category frequency signal |
+| Optuna-tuned LightGBM | v9 | 0.78199 | Tuned params underperformed defaults on this categorical-heavy dataset |
+| Target-encoded LGBM blend | v11 | 0.78203 | Duplicates CatBoost's internal encoding; no diversity gain |
+| 3-model stacking (CB+LGBM+XGB → LogReg) | submission_stack | 0.77991 | Meta-model overfits on small OOF; weaker than direct blend |
 
 ---
 
@@ -92,34 +106,26 @@ Final Submission  →  2nd Place  (0.78270 private AUC)
 
 | Model | CV ROC-AUC | Notes |
 |---|---|---|
-| Logistic Regression | 0.7253 | Baseline reference |
+| Logistic Regression | 0.7253 | Reference baseline |
 | Random Forest | 0.7507 | |
 | XGBoost | 0.7680 | |
 | LightGBM | 0.7714 | |
 | **CatBoost** | **0.7736** | Best single model — native categorical encoding |
-| CatBoost (Optuna-tuned) | 0.7744 | Best params: depth=7, lr=0.034, l2=7.49 |
+| CatBoost (Optuna-tuned) | 0.7744 | Best params: depth=7, lr=0.034, iter=757, l2=7.49 |
 
 ---
 
 ## Repository Structure
 
 ```
-patient-no-show-kaggle/
+osf-patient-no-show/
 │
 ├── README.md
+├── requirements.txt
+├── .gitignore
+├── generate_slides_images_v2.py   ← generates the 14 chart PNGs in slide_images/
 │
-├── src/                          ← all source code
-│   ├── main.py                   ← CLI entry point (controls the whole pipeline)
-│   ├── data_utils.py             ← data loading, feature splits, encoding helpers
-│   ├── train_baseline.py         ← CatBoost 5-fold CV baseline
-│   ├── tune.py                   ← Optuna search for CatBoost
-│   ├── tune_lgbm.py              ← Optuna search for LightGBM
-│   ├── blend.py                  ← CB + LGBM blend (10-seed × 5-fold)
-│   ├── blend_te_lgbm.py          ← target-encoded LGBM variant
-│   ├── stack.py                  ← 3-model stacking with Logistic Regression meta-model
-│   └── submission.py             ← generates final Kaggle submission CSV
-│
-├── experiments/                  ← per-version experiment logs
+├── experiments/                   ← per-version experiment write-ups
 │   ├── v10_50model_ensemble.md
 │   ├── v20_greedy_ensemble.md
 │   ├── v22_pseudo_label_r1.md
@@ -127,19 +133,29 @@ patient-no-show-kaggle/
 │   ├── v29_pseudo_label_r2.md
 │   └── v31_final_submission.md
 │
-├── outputs/
-│   ├── feature_importance.csv    ← top features by CatBoost gain
-│   ├── model_results.csv         ← per-fold AUC for all models
-│   └── leaderboard_progression/  ← score progression charts
-│
-├── slides/
-│   └── competition_presentation/ ← 14-chart visual walkthrough of the pipeline
-│
-├── requirements.txt
-└── .gitignore
+└── osf_no_show_project/
+    ├── main.py                    ← CLI entry point (controls the whole pipeline)
+    ├── data_utils.py              ← data loading, feature splits, encoding helpers
+    ├── train_baseline.py          ← CatBoost 5-fold CV baseline
+    ├── tune.py                    ← Optuna hyperparameter search for CatBoost
+    ├── tune_lgbm.py               ← Optuna hyperparameter search for LightGBM
+    ├── blend.py                   ← CatBoost + LightGBM blend (10-seed × 5-fold)
+    ├── blend_te_lgbm.py           ← target-encoded LightGBM variant
+    ├── stack.py                   ← 3-model stacking (CB + LGBM + XGB → LogReg meta)
+    ├── submission.py              ← Kaggle submission CSV generator
+    ├── outputs/
+    │   ├── model_results.csv      ← per-fold AUC for all 5 models
+    │   ├── optuna_results.csv     ← all Optuna trial scores
+    │   └── feature_importance/
+    │       └── feature_importance.csv
+    ├── results/                   ← saved OOF/test arrays and best hyperparameters
+    │   ├── best_params.json       ← Optuna best CatBoost params (CV AUC 0.7744)
+    │   └── best_lgbm_params.json  ← Optuna best LightGBM params
+    ├── slide_images/              ← 14 presentation chart PNGs
+    └── submissions/               ← 45 Kaggle submission CSVs
 ```
 
-> **Data not included** — raw competition data is not redistributed per Kaggle rules. Download `train.csv`, `test.csv`, and `metaData.csv` from the competition page and place them in the project root.
+> **Data not included** — competition data is not redistributed per Kaggle rules. Download `train.csv`, `test.csv`, and `metaData.csv` from the competition page and place them in the repo root.
 
 ---
 
@@ -150,38 +166,38 @@ patient-no-show-kaggle/
 pip install -r requirements.txt
 
 # Train CatBoost baseline (5-fold CV)
-python src/main.py --baseline
+python osf_no_show_project/main.py --baseline
 
-# Run Optuna hyperparameter search (100 trials)
-python src/main.py --tune --trials 100
+# Run Optuna hyperparameter search for CatBoost (100 trials)
+python osf_no_show_project/main.py --tune --trials 100
 
 # Run 50-model CB+LGBM blend and generate submission
-python src/main.py --blend --output v10.csv
+python osf_no_show_project/main.py --blend --output v10.csv
 
-# Run full stacking ensemble
-python src/main.py --stack --output stack.csv
+# Run 3-model stacking ensemble
+python osf_no_show_project/main.py --stack --output stack.csv
 ```
 
 ---
 
 ## Key Findings
 
-1. **Pseudo-labeling was the single biggest LB jump** (+0.00032 from v10 → v22). Threshold tuning mattered — too aggressive hurt diversity.
-2. **Rank averaging consistently outperformed probability averaging** when blending models with different calibration scales (CatBoost vs LightGBM vs XGBoost).
-3. **Optuna-tuned LGBM underperformed defaults** on the LB despite better CV scores — a reminder that CV alone doesn't guarantee LB improvement on categorical-heavy datasets.
-4. **Greedy ensemble selection found weights that no hand-tuned blend matched.** The winning combination kept CatBoost-heavy and used LightGBM only where it added OOF diversity.
-5. **The final 0.00015 margin** came down to rank blending v30 (pseudo-label r2) with v20 (greedy multi-model) — neither alone scored as high.
+1. **Pseudo-labeling was the single biggest jump** — v10 (0.78218) → v18 (0.78245) = +0.00027 with strict thresholds (pos > 0.60, neg < 0.02). Looser thresholds hurt.
+2. **Greedy ensemble selection consistently beat hand-tuned weights** — multi-start greedy (v20, 0.78256) outperformed every manually-tuned blend at the same model pool.
+3. **Feature engineering hurt, not helped** — interaction features (v16: 0.78189) and frequency encoding (v17: 0.78051) both fell below the v10 baseline (0.78218). CatBoost's internal ordered target encoding already captures these signals.
+4. **Optuna-tuned LightGBM underperformed defaults** — v9 tuned LGBM (0.78199) < v8 default LGBM (0.78214). Tuned params overfit to 3-fold CV; defaults generalised better to the LB.
+5. **The private LB margin was 0.00015** — public gap was 0.00006. The rank blend of pseudo-label greedy (v30) + base greedy (v20) held 2nd on both public and private, confirming the ensemble was not leaderboard-overfit.
 
 ---
 
 ## Presentation
 
-A 14-chart visual walkthrough of the full pipeline is available in `/slides/competition_presentation/`.
+A 14-chart visual walkthrough of the full pipeline is available in `osf_no_show_project/slide_images/`.
 
-Charts cover: dataset overview · model comparison · Optuna convergence · feature importance · pseudo-labeling workflow · score progression · ensemble diagram · rank vs probability blending · leaderboard result · full submission history.
+Charts cover: dataset overview · model comparison · Optuna convergence · feature importance · what didn't work · pseudo-labeling workflow · score progression · ensemble diagram · rank vs probability blending · leaderboard result · full submission history.
 
 ---
 
 ## Topics
 
-`machine-learning` `kaggle` `catboost` `lightgbm` `xgboost` `python` `data-science` `ensemble-methods` `pseudo-labeling` `optuna` `hyperparameter-optimization` `feature-engineering`
+`machine-learning` `kaggle` `catboost` `lightgbm` `python` `data-science` `ensemble-methods` `pseudo-labeling` `optuna` `hyperparameter-optimization`
