@@ -1,8 +1,16 @@
-# Patient No-Show Prediction — Kaggle Competition
+<h1 align="center">Patient No-Show Prediction</h1>
 
-**Final Placement: 🥈 2nd Place (Private Leaderboard)**  
-**Public ROC-AUC: 0.78271 · Private ROC-AUC: 0.78270**  
-**45 submissions over the competition period**
+<p align="center">
+  <img src="https://img.shields.io/badge/Rank-2nd%20Place%20%F0%9F%A5%88-silver?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Public%20AUC-0.78271-2563EB?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Private%20AUC-0.78270-1E3A8A?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Submissions-45-D97706?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Python-3.10-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+</p>
+
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide8_leaderboard.png" width="75%"/>
+</p>
 
 ---
 
@@ -21,43 +29,27 @@ Predict whether a patient will miss their scheduled medical appointment (*no-sho
 
 ## Final Pipeline
 
-```
-Raw Data
-    │
-    ▼
-Train CatBoost + LightGBM — 10 seeds × 5 folds each (50 models per algorithm)
-    │
-    ▼
-Generate OOF Predictions for all model variants
-    │
-    ▼
-Pseudo-Labeling Round 1
-  398 high-confidence no-shows (prob > 0.60) +
-  94,639 high-confidence show-ups (prob < 0.02)
-  → +95k rows added to training set
-    │
-    ▼
-Retrain CB + LGBM on augmented data (50 models each)
-    │
-    ▼
-Pseudo-Labeling Round 2
-  461 high-confidence no-shows (prob > 0.60) +
-  119,128 high-confidence show-ups (prob < 0.02)
-  → +119k rows added to training set
-    │
-    ▼
-Retrain CB + LGBM on augmented data (50 models each)
-    │
-    ▼
-Greedy Ensemble Selection (hill-climbing over OOF AUC across all saved model arrays)
-  v20: base greedy  [OOF 0.779003]
-  v30: pl2 greedy   [OOF 0.780235]
-    │
-    ▼
-Rank Average(v30, v20)
-    │
-    ▼
-Final Submission — 2nd Place · Public 0.78271 · Private 0.78270
+```mermaid
+flowchart TD
+    A["📂 Raw Data — 168,982 rows · 20 categorical features"] --> B
+    B["Train Base Models — CatBoost + LightGBM\n10 seeds × 5 folds = 50 models each"] --> C
+    C["Generate OOF Predictions for all model variants"] --> D
+    D["🏷️ Pseudo-Labeling Round 1\n398 high-conf no-shows + 94,639 high-conf show-ups → +95k rows"] --> E
+    E["Retrain CB + LGBM on 264k rows"] --> F
+    F["🏷️ Pseudo-Labeling Round 2\n461 high-conf no-shows + 119,128 high-conf show-ups → +119k rows"] --> G
+    G["Retrain CB + LGBM on 288k rows"] --> H
+    H["🔍 Greedy Ensemble Selection — hill-climbing over OOF AUC"] --> I & J
+    I["v20 Base Greedy\nOOF 0.779003"] --> K
+    J["v30 PL2 Greedy\nOOF 0.780235"] --> K
+    K["📊 Rank Average — rank v30 + rank v20"] --> L
+    L["🥈 2nd Place — Public 0.78271 · Private 0.78270"]
+
+    style A fill:#EFF6FF,stroke:#2563EB
+    style L fill:#FEF9C3,stroke:#CA8A04,font-weight:bold
+    style D fill:#F5F3FF,stroke:#7C3AED
+    style F fill:#F5F3FF,stroke:#7C3AED
+    style H fill:#ECFDF5,stroke:#16A34A
+    style K fill:#ECFDF5,stroke:#16A34A
 ```
 
 ---
@@ -86,6 +78,16 @@ Final Submission — 2nd Place · Public 0.78271 · Private 0.78270
 | v26 | Rank blend: rank(v23) + rank(v20) | 0.78268 |
 | **v31** | **Rank blend: v30 greedy-pl2 + v20 base greedy** | **0.78271** ← final |
 
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide6_score_progression.png" width="90%"/>
+  <br/><em>Public LB score across all 45 submissions</em>
+</p>
+
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide8_submission_history.png" width="90%"/>
+  <br/><em>All 45 submission scores plotted chronologically</em>
+</p>
+
 ---
 
 ## What Didn't Work
@@ -100,9 +102,17 @@ These were explored and abandoned (baseline v10 = 0.78218):
 | Target-encoded LGBM blend | v11 | 0.78203 | Duplicates CatBoost's internal encoding; no diversity gain |
 | 3-model stacking (CB+LGBM+XGB → LogReg) | submission_stack | 0.77991 | Meta-model overfits on small OOF; weaker than direct blend |
 
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide4_what_didnt_work.png" width="90%"/>
+</p>
+
 ---
 
 ## Model Comparison (5-Fold CV on Training Data)
+
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide3_model_comparison.png" width="70%"/>
+</p>
 
 | Model | CV ROC-AUC | Notes |
 |---|---|---|
@@ -112,6 +122,53 @@ These were explored and abandoned (baseline v10 = 0.78218):
 | LightGBM | 0.7714 | |
 | **CatBoost** | **0.7736** | Best single model — native categorical encoding |
 | CatBoost (Optuna-tuned) | 0.7744 | Best params: depth=7, lr=0.034, iter=757, l2=7.49 |
+
+<p align="center">
+  <table>
+    <tr>
+      <td><img src="osf_no_show_project/slide_images/slide3_catboost_folds.png" width="100%"/></td>
+      <td><img src="osf_no_show_project/slide_images/slide3_optuna_convergence.png" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>CatBoost per-fold CV scores</em></td>
+      <td align="center"><em>Optuna hyperparameter search convergence</em></td>
+    </tr>
+  </table>
+</p>
+
+---
+
+## Feature Importance
+
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide4_feature_importance.png" width="80%"/>
+  <br/><em>Top features by CatBoost gain — patient no-show history is by far the strongest signal</em>
+</p>
+
+---
+
+## Pseudo-Labeling
+
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide5_pseudo_labeling.png" width="90%"/>
+</p>
+
+---
+
+## Ensemble Architecture
+
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide6_ensemble_diagram.png" width="90%"/>
+</p>
+
+---
+
+## Why Rank Averaging Works
+
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide7_rank_vs_prob.png" width="80%"/>
+  <br/><em>Rank normalisation removes calibration differences between models trained on different data distributions</em>
+</p>
 
 ---
 
@@ -188,13 +245,80 @@ python osf_no_show_project/main.py --stack --output stack.csv
 4. **Optuna-tuned LightGBM underperformed defaults** — v9 tuned LGBM (0.78199) < v8 default LGBM (0.78214). Tuned params overfit to 3-fold CV; defaults generalised better to the LB.
 5. **The private LB margin was 0.00015** — public gap was 0.00006. The rank blend of pseudo-label greedy (v30) + base greedy (v20) held 2nd on both public and private, confirming the ensemble was not leaderboard-overfit.
 
+<p align="center">
+  <img src="osf_no_show_project/slide_images/slide9_takeaways.png" width="85%"/>
+</p>
+
 ---
 
-## Presentation
+## Presentation Slides
 
-A 14-chart visual walkthrough of the full pipeline is available in `osf_no_show_project/slide_images/`.
+<details>
+<summary><strong>View all 14 presentation charts</strong></summary>
+<br/>
 
-Charts cover: dataset overview · model comparison · Optuna convergence · feature importance · what didn't work · pseudo-labeling workflow · score progression · ensemble diagram · rank vs probability blending · leaderboard result · full submission history.
+<p align="center">
+  <table>
+    <tr>
+      <td><img src="osf_no_show_project/slide_images/slide2_dataset_table.png" width="100%"/></td>
+      <td><img src="osf_no_show_project/slide_images/slide2_class_distribution.png" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>Dataset overview</em></td>
+      <td align="center"><em>Class distribution (~5% no-show)</em></td>
+    </tr>
+    <tr>
+      <td><img src="osf_no_show_project/slide_images/slide3_model_comparison.png" width="100%"/></td>
+      <td><img src="osf_no_show_project/slide_images/slide3_catboost_folds.png" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>Model comparison</em></td>
+      <td align="center"><em>CatBoost fold scores</em></td>
+    </tr>
+    <tr>
+      <td><img src="osf_no_show_project/slide_images/slide3_optuna_convergence.png" width="100%"/></td>
+      <td><img src="osf_no_show_project/slide_images/slide4_feature_importance.png" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>Optuna convergence</em></td>
+      <td align="center"><em>Feature importance</em></td>
+    </tr>
+    <tr>
+      <td><img src="osf_no_show_project/slide_images/slide4_what_didnt_work.png" width="100%"/></td>
+      <td><img src="osf_no_show_project/slide_images/slide5_pseudo_labeling.png" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>What didn't work</em></td>
+      <td align="center"><em>Pseudo-labeling strategy</em></td>
+    </tr>
+    <tr>
+      <td><img src="osf_no_show_project/slide_images/slide6_score_progression.png" width="100%"/></td>
+      <td><img src="osf_no_show_project/slide_images/slide6_ensemble_diagram.png" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>Score progression</em></td>
+      <td align="center"><em>Ensemble architecture</em></td>
+    </tr>
+    <tr>
+      <td><img src="osf_no_show_project/slide_images/slide7_rank_vs_prob.png" width="100%"/></td>
+      <td><img src="osf_no_show_project/slide_images/slide8_leaderboard.png" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>Rank vs probability averaging</em></td>
+      <td align="center"><em>Final leaderboard</em></td>
+    </tr>
+    <tr>
+      <td><img src="osf_no_show_project/slide_images/slide8_submission_history.png" width="100%"/></td>
+      <td><img src="osf_no_show_project/slide_images/slide9_takeaways.png" width="100%"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>All 45 submissions</em></td>
+      <td align="center"><em>Key takeaways</em></td>
+    </tr>
+  </table>
+</p>
+
+</details>
 
 ---
 
