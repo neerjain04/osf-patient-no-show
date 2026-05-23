@@ -675,40 +675,72 @@ def slide7_rank_vs_prob():
 # SLIDE 8 – Leaderboard Results Table
 # =============================================================================
 def slide8_leaderboard():
-    lb_data = {
-        "#": ["1", "2 \u2605", "3", "\u2026"],
-        "Team": ["Joshua Tiffany", "NeerJain04", "(3rd place)", "\u2026"],
-        "Public Score": ["0.78277", "0.78271", "~0.7820", "\u2026"],
-        "Entries": ["57", "45", "\u2014", "\u2014"],
-        "Gap from #1": ["\u2014", "+0.00006", "\u2014", "\u2014"],
-    }
-    df = pd.DataFrame(lb_data)
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4.0))
+    fig.patch.set_facecolor("white")
+    fig.suptitle("Final Leaderboard Results", fontsize=16, fontweight="bold",
+                 color=DBLUE, y=1.01)
 
-    fig, ax = plt.subplots(figsize=(10, 3.5))
+    # ── Public leaderboard (30% of test data) ────────────────────────────────
+    pub_data = {
+        "#":    ["1", "2", "3 \u2605"],
+        "Team": ["Dumisa Dhlamini", "Joshua Tiffany", "NeerJain04"],
+        "Public AUC": ["0.78345", "0.78283", "0.78271"],
+        "Entries": ["2", "67", "45"],
+    }
+    df_pub = pd.DataFrame(pub_data)
+    ax = axes[0]
     ax.axis("off")
-    tbl = ax.table(cellText=df.values, colLabels=df.columns,
+    ax.set_title("Public (30% test)", fontsize=13, fontweight="bold",
+                 color=DGRAY, pad=8)
+    tbl = ax.table(cellText=df_pub.values, colLabels=df_pub.columns,
                    cellLoc="center", loc="center")
     tbl.auto_set_font_size(False)
-    tbl.set_fontsize(14)
-    tbl.scale(1, 2.4)
-
-    row2_color = "#FEF3C7"
+    tbl.set_fontsize(13)
+    tbl.scale(1, 2.5)
+    highlight_row = 3  # NeerJain04 is row 3
     for (r, c), cell in tbl.get_celld().items():
         cell.set_edgecolor("#CBD5E1")
         if r == 0:
             cell.set_facecolor(DBLUE)
             cell.set_text_props(color="white", fontweight="bold")
-        elif r == 2:
-            cell.set_facecolor(row2_color)
+        elif r == highlight_row:
+            cell.set_facecolor("#FEF3C7")
             cell.set_text_props(fontweight="bold", color="#92400E")
         else:
             cell.set_facecolor("white")
 
-    ax.set_title("Final Leaderboard Position",
-                 fontsize=16, fontweight="bold", pad=14, color=DBLUE)
-    note = "\u2605 NeerJain04 \u2014 2nd place,  trailing leader by only 0.00006 AUC (45 submissions)"
-    ax.text(0.5, -0.05, note, transform=ax.transAxes,
-            ha="center", fontsize=11, color=DGRAY, style="italic")
+    # ── Private leaderboard (70% of test data — final standings) ─────────────
+    priv_data = {
+        "#":    ["1", "2 \u2605", "3"],
+        "Team": ["Dumisa Dhlamini", "NeerJain04", "Joshua Tiffany"],
+        "Private AUC": ["0.78285", "0.78270", "0.78253"],
+        "\u0394 vs Public": ["\u2014", "\u25b2 +1 (3rd\u21922nd)", "\u25bc \u22121 (2nd\u21923rd)"],
+    }
+    df_priv = pd.DataFrame(priv_data)
+    ax2 = axes[1]
+    ax2.axis("off")
+    ax2.set_title("Private (70% test) \u2014 Final Standings", fontsize=13,
+                  fontweight="bold", color=DGRAY, pad=8)
+    tbl2 = ax2.table(cellText=df_priv.values, colLabels=df_priv.columns,
+                     cellLoc="center", loc="center")
+    tbl2.auto_set_font_size(False)
+    tbl2.set_fontsize(13)
+    tbl2.scale(1, 2.5)
+    for (r, c), cell in tbl2.get_celld().items():
+        cell.set_edgecolor("#CBD5E1")
+        if r == 0:
+            cell.set_facecolor(DBLUE)
+            cell.set_text_props(color="white", fontweight="bold")
+        elif r == 2:
+            cell.set_facecolor("#FEF3C7")
+            cell.set_text_props(fontweight="bold", color="#92400E")
+        else:
+            cell.set_facecolor("white")
+
+    note = ("\u2605 NeerJain04: 3rd on public \u2192 2nd on private  |  "
+            "Private gap to leader: 0.00015  |  45 submissions")
+    fig.text(0.5, -0.04, note, ha="center", fontsize=11,
+             color=DGRAY, style="italic")
     plt.tight_layout()
     path = os.path.join(OUT, "slide8_leaderboard.png")
     plt.savefig(path, dpi=150, bbox_inches="tight")

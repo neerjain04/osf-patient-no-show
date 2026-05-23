@@ -101,7 +101,7 @@ Greedy Ensemble Selection
 Rank Average (v30, v20)
     │
     ▼
-Final Submission — 2nd Place · Public 0.78271 · Private 0.78270
+Final Submission — 3rd Public (0.78271) → 2nd Private (0.78270)
 ```
 
 ---
@@ -193,7 +193,7 @@ One consistent pattern across failures: approaches that added information CatBoo
 
 4. **Hyperparameter tuning was not always beneficial.** Optuna-tuned LightGBM underperformed default parameters on the leaderboard. The 5-fold CV signal was not reliable enough to distinguish between similarly-performing hyperparameter configurations, and tuned parameters overfit to that signal.
 
-5. **The private leaderboard margin held.** The final private AUC gap (0.00015) was close to the public gap (0.00014), suggesting the ensemble was not leaderboard-overfit. Rank blending two independently trained greedy ensembles contributed to this stability.
+5. **The private leaderboard confirmed the ensemble was not overfit to the public test split.** The final submission ranked 3rd on the public leaderboard (0.78271) but rose to 2nd on the private (0.78270), overtaking Joshua Tiffany who dropped from 2nd public (0.78283) to 3rd private (0.78253). The private margin to the leader (Dumisa Dhlamini, 0.78285) was 0.00015.
 
 ---
 
