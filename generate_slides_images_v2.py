@@ -683,7 +683,7 @@ def slide8_leaderboard():
     # ── Public leaderboard (30% of test data) ────────────────────────────────
     pub_data = {
         "#":    ["1", "2", "3 \u2605"],
-        "Team": ["Dumisa Dhlamini", "Joshua Tiffany", "NeerJain04"],
+        "Team": ["1st place", "2nd place", "NeerJain04"],
         "Public AUC": ["0.78345", "0.78283", "0.78271"],
         "Entries": ["2", "67", "45"],
     }
@@ -712,7 +712,7 @@ def slide8_leaderboard():
     # ── Private leaderboard (70% of test data — final standings) ─────────────
     priv_data = {
         "#":    ["1", "2 \u2605", "3"],
-        "Team": ["Dumisa Dhlamini", "NeerJain04", "Joshua Tiffany"],
+        "Team": ["1st place", "NeerJain04", "2nd place (public)"],
         "Private AUC": ["0.78285", "0.78270", "0.78253"],
         "\u0394 vs Public": ["\u2014", "\u25b2 +1 (3rd\u21922nd)", "\u25bc \u22121 (2nd\u21923rd)"],
     }

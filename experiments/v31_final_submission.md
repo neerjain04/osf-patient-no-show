@@ -32,13 +32,13 @@ Rank averaging the two removes calibration bias and retains the complementary st
 
 | Team | Public AUC | Private AUC | Position |
 |---|---|---|---|
-| Dumisa Dhlamini | 0.78277 | **0.78285** | 1st |
+| 1st place | 0.78345 | **0.78285** | 1st |
 | **NeerJain04 (us)** | **0.78271** | **0.78270** | **2nd** |
-| Joshua Tiffany | 0.78292 | 0.78253 | 3rd (shake-down) |
+| 2nd place (public) | 0.78283 | 0.78253 | 3rd (shake-down) |
 
-Final gap: **0.00015 on private**. The public gap was 0.00006 — v31 slightly underperformed relative to the leader on the 70% private holdout, but the overall result held.
+Final gap: **0.00015 on private**. The public gap to 1st place was 0.00074 — our rank-blended ensemble improved relative to competitors on the 70% private holdout.
 
-Notably, Joshua Tiffany led on public (+0.00021) but dropped to 3rd on private, confirming that over-fitting to the public leaderboard was a real risk avoided here.
+Notably, the 2nd-place public competitor (0.78283) dropped to 3rd on private (0.78253), confirming that over-fitting to the public leaderboard was a real risk avoided here.
 
 ## What Decided the Margin
 

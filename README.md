@@ -193,7 +193,7 @@ One consistent pattern across failures: approaches that added information CatBoo
 
 4. **Hyperparameter tuning was not always beneficial.** Optuna-tuned LightGBM underperformed default parameters on the leaderboard. The 5-fold CV signal was not reliable enough to distinguish between similarly-performing hyperparameter configurations, and tuned parameters overfit to that signal.
 
-5. **The private leaderboard confirmed the ensemble was not overfit to the public test split.** The final submission ranked 3rd on the public leaderboard (0.78271) but rose to 2nd on the private (0.78270), overtaking Joshua Tiffany who dropped from 2nd public (0.78283) to 3rd private (0.78253). The private margin to the leader (Dumisa Dhlamini, 0.78285) was 0.00015.
+5. **The private leaderboard confirmed the ensemble was not overfit to the public test split.** The final submission ranked 3rd on the public leaderboard (0.78271) but rose to 2nd on the private (0.78270). The 2nd-place public competitor dropped to 3rd on the private (0.78283 → 0.78253), while our model held. The private margin to 1st place (0.78285) was 0.00015.
 
 ---
 
